@@ -1,0 +1,100 @@
+name: Desktop CI (macOS)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+      - remix_live
+      - remix_beta
+      - '**/desktop-*'
+
+jobs:
+  build-desktop:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: brew install zstd
+      - run: yarn install
+      - run: NODE_OPTIONS=--max-old-space-size=4096 yarn build:desktop
+
+      - name: Archive dist folder
+        run: |
+          mkdir -p persist
+          tar -cf - dist | zstd -1 -o persist/dist.tar.zst
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: remix-desktop-dist
+          path: persist/dist.tar.zst
+
+jobs:
+  test-desktop-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.2.0'
+
+      - name: Install Rosetta
+        run: |
+          /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+
+      - name: Show dist contents
+        run: ls -la dist/apps/remix-ide
+
+      - name: Restore yarn cache
+        uses: actions/cache@v4
+        with:
+          path: apps/remixdesktop/node_modules
+          key: remixdesktop-deps-mac-${{ hashFiles('apps/remixdesktop/yarn.lock') }}
+
+      - name: Install desktop dependencies
+        run: |
+          cd apps/remixdesktop
+          yarn || yarn
+          yarn add @remix-project/remix-ws-templates
+
+      - name: Rebuild Remix IDE in desktop
+        run: |
+          mkdir -p apps/remixdesktop/build
+          cp -r dist/apps/remix-ide apps/remixdesktop/build
+          cd apps/remixdesktop
+          yarn
+
+      - name: Install ripgrep and build desktop app
+        run: |
+          cd apps/remixdesktop
+          yarn installRipGrepMacOXarm64
+          PUBLISH_FOR_PULL_REQUEST='false' DO_NOT_NOTARIZE='true' USE_HARD_LINKS=false ./rundist.bash --arm64
+          find build
+
+      - name: Run CI tests
+        run: |
+          cd apps/remixdesktop
+          ./run_ci_test.sh
+
+      - name: Run isogit UI tests
+        run: |
+          cd apps/remixdesktop
+          ./run_git_ui_isogit_tests.sh
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: remixdesktop-test-reports
+          path: ./apps/remixdesktop/reports/tests
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: remixdesktop-screenshots
+          path: ./apps/remixdesktop/reports/screenshots
+
