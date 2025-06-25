@@ -30,8 +30,7 @@ jobs:
         with:
           name: remix-desktop-dist
           path: persist/dist.tar.zst
-
-jobs:
+          
   test-desktop-macos:
     runs-on: macos-latest
     steps:
