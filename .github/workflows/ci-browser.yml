@@ -86,10 +86,13 @@ jobs:
           name: remix-dist
           path: dist/
 
+      - name: List downloaded dist contents
+        run: ls -laR .
+
       - name: Extract dist archive
         run: |
           mkdir -p dist
-          zstd -d -c dist.tar.zst | tar -x -C .
+          zstd -d -c dist/dist.tar.zst | tar -x -C .
 
       - run: sudo apt update && sudo apt install -y python3-pip zstd
 
