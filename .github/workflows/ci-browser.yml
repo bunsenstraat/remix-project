@@ -81,6 +81,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+
+      - name: Restore yarn cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: v1-deps-${{ hashFiles('yarn.lock') }}
+
+      - run: yarn install
       - uses: actions/download-artifact@v4
         with:
           name: remix-dist
