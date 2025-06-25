@@ -46,6 +46,14 @@ jobs:
         run: |
           /usr/sbin/softwareupdate --install-rosetta --agree-to-license
 
+      - uses: actions/download-artifact@v4
+        with:
+          name: remix-desktop-dist
+          path: dist/
+
+      - name: List downloaded dist contents
+        run: ls -laR dist
+
       - name: Show dist contents
         run: ls -la dist/apps/remix-ide
 
