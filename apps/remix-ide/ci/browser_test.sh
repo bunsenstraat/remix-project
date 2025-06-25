@@ -17,7 +17,7 @@ sleep 5
 node apps/remix-ide/ci/splice_tests.js $2 $3 | grep -v 'metamask' > all-tests.txt
 TESTFILES=$(node apps/remix-ide/ci/split_tests_for_matrix.js all-tests.txt 10 $3)
 for TESTFILE in $TESTFILES; do
-    npx nightwatch --config dist/apps/remix-ide-e2e/nightwatch-${1}.js dist/apps/remix-ide-e2e/src/tests/${TESTFILE}.js --env=$1 || npx nightwatch --config dist/apps/remix-ide-e2e/nightwatch-${1}.js dist/apps/remix-ide-e2e/src/tests/${TESTFILE}.js --env=$1 || TEST_EXITCODE=1
+    npx nightwatch@2.3 --config dist/apps/remix-ide-e2e/nightwatch-${1}.js dist/apps/remix-ide-e2e/src/tests/${TESTFILE}.js --env=$1 || npx nightwatch@2.3 --config dist/apps/remix-ide-e2e/nightwatch-${1}.js dist/apps/remix-ide-e2e/src/tests/${TESTFILE}.js --env=$1 || TEST_EXITCODE=1
 done
 
 echo "$TEST_EXITCODE"
