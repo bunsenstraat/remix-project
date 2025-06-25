@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - '**'
+      - "**"
 
 jobs:
   lint:
@@ -14,7 +14,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - uses: actions/cache@v4
         with:
@@ -30,13 +30,51 @@ jobs:
       - name: Remix Libs Linting
         run: node ./apps/remix-ide/ci/lint-targets.js
 
+  remixlibs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: v1-deps-${{ hashFiles('yarn.lock') }}
+
+      - name: Show yarn version
+        run: yarn --version
+
+      - run: yarn
+
+      - run: yarn build:libs
+
+      - name: Install in dist/libs/remix-tests
+        run: |
+          cd dist/libs/remix-tests
+          yarn
+          yarn add @remix-project/remix-url-resolver ../../libs/remix-url-resolver
+          yarn add @remix-project/remix-lib ../../libs/remix-lib
+          yarn add @remix-project/remix-solidity ../../libs/remix-solidity
+          yarn add @remix-project/remix-simulator ../../libs/remix-simulator
+
+      - name: Run CLI remix-tests (from remix-tests dist)
+        run: cd dist/libs/remix-tests && ./bin/remix-tests ./../../../libs/remix-tests/tests/examples_0/assert_ok_test.sol
+
+      - name: Run remix-tests bin directly from dist
+        run: node dist/libs/remix-tests/bin/remix-tests ./libs/remix-tests/tests/examples_0/assert_ok_test.sol
+
+      - run: yarn run test:libs
+
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
       - run: sudo apt update && sudo apt install -y zstd
       - name: Restore yarn cache
         uses: actions/cache@v4
@@ -95,14 +133,44 @@ jobs:
     strategy:
       matrix:
         browser: [chrome, firefox]
-        job: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
-                  10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
-                  20, 21, 22, 23, 24, 25, 26, 27, 28, 29]
+        job:
+          [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+          ]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Restore yarn cache
         uses: actions/cache@v4
