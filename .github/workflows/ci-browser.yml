@@ -4,10 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - master
-      - remix_live
-      - remix_beta
-      - '**/desktop-*'
+      - test
 
 jobs:
   build:

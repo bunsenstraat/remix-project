@@ -11,7 +11,7 @@ on:
 
 jobs:
   build-desktop:
-    needs: build-desktop  # 👈 this ensures proper sequencing
+
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -33,6 +33,7 @@ jobs:
           path: persist/dist.tar.zst
 
   test-desktop-macos:
+    needs: build-desktop  # 👈 this ensures proper sequencing
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
