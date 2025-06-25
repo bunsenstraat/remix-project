@@ -1,0 +1,117 @@
+name: Remix IDE Browser CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+      - remix_live
+      - remix_beta
+      - '**/desktop-*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: sudo apt update && sudo apt install -y zstd
+      - name: Restore yarn cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: v1-deps-${{ hashFiles('yarn.lock') }}
+
+      - run: yarn install
+
+      - name: Build project
+        run: |
+          if [[ "${{ github.ref_name }}" == "master" ]]; then
+            NX_BIN_URL=http://127.0.0.1:8080/assets/js/soljson \
+            NX_WASM_URL=http://127.0.0.1:8080/assets/js/soljson \
+            NX_NPM_URL=http://127.0.0.1:9090/ yarn build:production
+          else
+            NX_BIN_URL=http://127.0.0.1:8080/assets/js/soljson \
+            NX_WASM_URL=http://127.0.0.1:8080/assets/js/soljson \
+            NX_NPM_URL=http://127.0.0.1:9090/ yarn build
+          fi
+
+      - run: yarn run build:e2e
+
+      - run: grep -ir "[0-9]+commit" apps/* libs/* --include \*.ts --include \*.tsx --include \*.json > soljson-versions.txt
+
+      - name: Restore soljson assets
+        uses: actions/cache@v4
+        with:
+          path: dist/apps/remix-ide/assets/js/soljson
+          key: soljson-v7-${{ hashFiles('soljson-versions.txt') }}
+
+      - run: yarn run downloadsolc_assets_e2e
+
+      - name: Save soljson cache
+        uses: actions/cache/save@v4
+        with:
+          path: dist/apps/remix-ide/assets/js/soljson
+          key: soljson-v7-${{ hashFiles('soljson-versions.txt') }}
+
+      - name: Archive dist folder
+        run: |
+          mkdir -p persist
+          tar -cf - dist | zstd -1 -o persist/dist.tar.zst
+
+      - name: Persist dist archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: remix-dist
+          path: persist/dist.tar.zst
+
+  remix-ide-browser:
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        browser: [chrome, firefox]
+        job: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: actions/download-artifact@v4
+        with:
+          name: remix-dist
+          path: dist/
+
+      - run: sudo apt update && sudo apt install -y python3-pip zstd
+
+      - run: |
+          mkdir -p node_modules/hardhat
+          wget https://unpkg.com/hardhat/console.sol -O node_modules/hardhat/console.sol
+
+      - name: Install browser (Chrome)
+        if: matrix.browser == 'chrome'
+        uses: browser-actions/setup-chrome@v1
+
+      - name: Install browser (Firefox)
+        if: matrix.browser == 'firefox'
+        uses: browser-actions/setup-firefox@v1
+
+      - run: yarn install_webdriver
+
+      - run: ./apps/remix-ide/ci/browser_test.sh ${{ matrix.browser }} 10 ${{ matrix.job }}
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.browser }}-${{ matrix.job }}
+          path: reports/tests
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots-${{ matrix.browser }}-${{ matrix.job }}
+          path: reports/screenshots
