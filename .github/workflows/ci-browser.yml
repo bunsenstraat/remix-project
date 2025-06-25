@@ -87,12 +87,15 @@ jobs:
           path: dist/
 
       - name: List downloaded dist contents
-        run: ls -laR .
+        run: ls -laR dist
 
       - name: Extract dist archive
         run: |
           mkdir -p dist
           zstd -d -c dist/dist.tar.zst | tar -x -C .
+
+      - name: List downloaded dist contents
+        run: ls -laR dist
 
       - run: sudo apt update && sudo apt install -y python3-pip zstd
 
