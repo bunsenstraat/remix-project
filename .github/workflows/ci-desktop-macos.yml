@@ -51,6 +51,11 @@ jobs:
           name: remix-desktop-dist
           path: dist/
 
+      - name: Extract dist archive
+        run: |
+          mkdir -p dist
+          zstd -d -c dist/dist.tar.zst | tar -x -C .
+
       - name: List downloaded dist contents
         run: ls -laR dist
 
